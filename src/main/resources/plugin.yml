@@ -1,0 +1,11 @@
+name: SimpleShop
+version: 1.0
+main: local.simpleshop.SimpleShopPlugin
+api-version: 1.20
+author: YourName
+description: Shop GUI for buying and selling items
+depend: [Vault]
+commands:
+  shop:
+    description: Open the shop GUI
+    usage: /shop
