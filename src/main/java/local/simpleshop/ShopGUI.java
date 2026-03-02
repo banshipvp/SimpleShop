@@ -406,6 +406,12 @@ public class ShopGUI implements Listener {
         player.sendMessage("§7New balance: §a$" + formatMoney(economy.getBalance(player)));
     }
 
+    /** Public lookup used by /sellall — returns sell price or -1 if not sold */
+    public double getSellPrice(Material material) {
+        ShopItem item = findShopItem(material);
+        return item == null ? -1 : item.sellPrice;
+    }
+
     private ShopItem findShopItem(Material material) {
         for (List<ShopItem> items : categories.values()) {
             for (ShopItem item : items) {

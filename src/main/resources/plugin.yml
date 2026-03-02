@@ -9,3 +9,6 @@ commands:
   shop:
     description: Open the shop GUI
     usage: /shop
+  sellall:
+    description: Sell all inventory items at shop prices
+    usage: /sellall
