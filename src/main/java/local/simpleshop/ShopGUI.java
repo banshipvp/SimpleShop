@@ -3,12 +3,16 @@ package local.simpleshop;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.CreatureSpawner;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
@@ -21,6 +25,7 @@ public class ShopGUI implements Listener {
     private final SimpleShopPlugin plugin;
     private final Economy economy;
     private final Map<String, List<ShopItem>> categories = new LinkedHashMap<>();
+    private final List<SpawnerEntry> spawnerEntries = new ArrayList<>();
 
     public ShopGUI(SimpleShopPlugin plugin, Economy economy) {
         this.plugin = plugin;
@@ -160,8 +165,8 @@ public class ShopGUI implements Listener {
         raiding.add(new ShopItem(Material.REDSTONE_TORCH, "Redstone Torch", 20, 8));
         raiding.add(new ShopItem(Material.REPEATER, "Repeater", 35, 15));
         raiding.add(new ShopItem(Material.COMPARATOR, "Comparator", 45, 20));
-        raiding.add(new ShopItem(Material.DISPENSER, "Dispenser", 85, 40));
-        raiding.add(new ShopItem(Material.OBSERVER, "Observer", 90, 45));
+        raiding.add(new ShopItem(Material.DISPENSER, "Dispenser", 1_000, 400));
+        raiding.add(new ShopItem(Material.OBSERVER, "Observer", 1_000, 400));
         raiding.add(new ShopItem(Material.PISTON, "Piston", 60, 25));
         raiding.add(new ShopItem(Material.STICKY_PISTON, "Sticky Piston", 100, 45));
         raiding.add(new ShopItem(Material.SLIME_BLOCK, "Slime Block", 220, 100));
@@ -193,13 +198,35 @@ public class ShopGUI implements Listener {
         misc.add(new ShopItem(Material.NETHER_STAR, "Nether Star", 20000, 10000));
         misc.add(new ShopItem(Material.DRAGON_BREATH, "Dragon Breath", 1000, 500));
         categories.put("misc", misc);
+
+        // SPAWNERS category – buy-only items; sorted lowest → highest price
+        spawnerEntries.clear();
+        //                                                            buyPrice    factionValue
+        spawnerEntries.add(new SpawnerEntry(EntityType.CHICKEN,          "Chicken",              40_000,    40_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.PIG,              "Pig",                  50_000,    50_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.SHEEP,            "Sheep",                50_000,    50_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.WOLF,             "Wolf",                 60_000,    60_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.COW,              "Cow",                  65_000,    65_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.CAVE_SPIDER,      "Cave Spider",          80_000,    80_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.SPIDER,           "Spider",               90_000,    90_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.ZOMBIE,           "Zombie",              100_000,   100_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.SKELETON,         "Skeleton",            120_000,   120_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.SLIME,            "Slime",               175_000,   175_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.ZOMBIFIED_PIGLIN, "Zombified Piglin",    185_000,   185_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.BLAZE,            "Blaze",               500_000,   200_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.CREEPER,          "Creeper",             500_000,   150_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.MAGMA_CUBE,       "Magma Cube",        1_800_000,   250_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.GHAST,            "Ghast",             2_000_000,   350_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.IRON_GOLEM,       "Iron Golem",        2_000_000,   300_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.SNOWMAN,          "Snowman",          10_000_000,10_000_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.WARDEN,           "Warden",           15_000_000,   500_000));
     }
 
     /**
      * Open the main shop menu
      */
     public void openMainShop(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 36, "§6§l⚡ Shop Categories");
+        Inventory inv = Bukkit.createInventory(null, 54, "§6§l⚡ Shop Categories");
 
         // Blocks category
         ItemStack blocksIcon = createIcon(Material.STONE, "§a§lBlocks", 
@@ -236,10 +263,18 @@ public class ShopGUI implements Listener {
             "§7Cannon essentials", "§7TNT, Redstone, Repeaters, etc.", "§e§lClick to browse!");
         inv.setItem(16, raidingIcon);
 
+        // Spawners category
+        ItemStack spawnersIcon = createIcon(Material.SPAWNER, "§5§lSpawners",
+            "§7All spawner types",
+            "§7Values ramp from §e50%§7 at placement",
+            "§7to §e100%§7 after 48 hours in your territory",
+            "§e§lClick to browse!");
+        inv.setItem(29, spawnersIcon);
+
         // Balance display
         ItemStack balanceIcon = createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
             "§a$" + formatMoney(economy.getBalance(player)));
-        inv.setItem(31, balanceIcon);
+        inv.setItem(40, balanceIcon);
 
         player.openInventory(inv);
     }
@@ -248,6 +283,11 @@ public class ShopGUI implements Listener {
      * Open a specific category
      */
     public void openCategory(Player player, String category) {
+        if (category.equals("spawners")) {
+            openSpawnersCategory(player);
+            return;
+        }
+
         List<ShopItem> items = categories.get(category);
         if (items == null) return;
 
@@ -289,6 +329,61 @@ public class ShopGUI implements Listener {
         player.openInventory(inv);
     }
 
+    /**
+     * Open the Spawners browsing page.
+     * Spawners are buy-only; their in-faction value ramps up over 48 hours.
+     */
+    private void openSpawnersCategory(Player player) {
+        Inventory inv = Bukkit.createInventory(null, 54, "§6§lShop - Spawners");
+
+        int slot = 0;
+        for (SpawnerEntry entry : spawnerEntries) {
+            if (slot >= 45) break;
+            inv.setItem(slot++, createSpawnerDisplayItem(entry));
+        }
+
+        // Back button
+        ItemStack backButton = createIcon(Material.ARROW, "§c§lBack to Categories");
+        inv.setItem(49, backButton);
+
+        // Balance display
+        ItemStack balanceIcon = createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
+                "§a$" + formatMoney(economy.getBalance(player)));
+        inv.setItem(48, balanceIcon);
+
+        player.openInventory(inv);
+    }
+
+    /** Build the display ItemStack shown in the Spawners shop page. */
+    private ItemStack createSpawnerDisplayItem(SpawnerEntry entry) {
+        ItemStack item = new ItemStack(Material.SPAWNER);
+        ItemMeta rawMeta = item.getItemMeta();
+        // Set the entity type so the spawner preview shows the correct mob
+        if (rawMeta instanceof BlockStateMeta bsm) {
+            BlockState state = bsm.getBlockState();
+            if (state instanceof CreatureSpawner cs) {
+                cs.setSpawnedType(entry.entityType);
+                bsm.setBlockState(cs);
+            }
+            double fv = entry.factionValue;
+            bsm.setDisplayName("§6§l" + entry.displayName + " Spawner");
+            List<String> lore = new ArrayList<>();
+            lore.add("§7");
+            lore.add("§aBuy Price: §e$" + formatMoney(entry.buyPrice));
+            lore.add("§7");
+            lore.add("§7Faction territory value over time:");
+            lore.add("§e   0h §8→ §f$" + formatMoney(fv * 0.50) + "  §850%");
+            lore.add("§e  24h §8→ §f$" + formatMoney(fv * 0.75) + "  §875%");
+            lore.add("§e  48h §8→ §a$" + formatMoney(fv)        + "  §a100% §7(full)");
+            lore.add("§7");
+            lore.add("§e▸ Left Click: §aBuy 1");
+            lore.add("§e▸ Shift + Left: §aBuy 16");
+            bsm.setLore(lore);
+            item.setItemMeta(bsm);
+        }
+        return item;
+    }
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
@@ -324,6 +419,35 @@ public class ShopGUI implements Listener {
                 openCategory(player, "misc");
             } else if (displayName.contains("Raiding")) {
                 openCategory(player, "raiding");
+            } else if (displayName.contains("Spawners")) {
+                openCategory(player, "spawners");
+            }
+            return;
+        }
+
+        // Spawners category menu
+        if (title.contains("Spawners")) {
+            if (displayName.contains("Back to Categories")) {
+                openMainShop(player);
+                return;
+            }
+            if (displayName.contains("Balance")) return;
+
+            // Detect which spawner type was clicked via BlockStateMeta
+            if (clicked.getType() == Material.SPAWNER && clicked.hasItemMeta()
+                    && clicked.getItemMeta() instanceof BlockStateMeta bsm) {
+                BlockState state = bsm.getBlockState();
+                if (state instanceof CreatureSpawner cs && cs.getSpawnedType() != null) {
+                    SpawnerEntry entry = findSpawnerEntry(cs.getSpawnedType());
+                    if (entry != null) {
+                        int amount = event.isShiftClick() ? 16 : 1;
+                        buySpawner(player, entry, amount);
+                        // Refresh balance
+                        event.getView().getTopInventory().setItem(48, createIcon(
+                                Material.GOLD_INGOT, "§e§lYour Balance",
+                                "§a$" + formatMoney(economy.getBalance(player))));
+                    }
+                }
             }
             return;
         }
@@ -362,6 +486,48 @@ public class ShopGUI implements Listener {
             "§e§lYour Balance",
             "§a$" + formatMoney(economy.getBalance(player))
         ));
+    }
+
+    private void buySpawner(Player player, SpawnerEntry entry, int amount) {
+        double totalCost = entry.buyPrice * amount;
+
+        if (economy.getBalance(player) < totalCost) {
+            player.sendMessage("§cYou don't have enough money! Need $" + formatMoney(totalCost));
+            return;
+        }
+        if (player.getInventory().firstEmpty() == -1) {
+            player.sendMessage("§cYour inventory is full!");
+            return;
+        }
+
+        economy.withdrawPlayer(player, totalCost);
+
+        // Build the spawner item with the correct entity type
+        ItemStack spawnerItem = new ItemStack(Material.SPAWNER, amount);
+        ItemMeta rawMeta = spawnerItem.getItemMeta();
+        if (rawMeta instanceof BlockStateMeta bsm) {
+            BlockState state = bsm.getBlockState();
+            if (state instanceof CreatureSpawner cs) {
+                cs.setSpawnedType(entry.entityType);
+                bsm.setBlockState(cs);
+            }
+            bsm.setDisplayName("§6" + entry.displayName + " Spawner");
+            bsm.setLore(List.of("§7Place to spawn §f" + entry.displayName));
+            spawnerItem.setItemMeta(bsm);
+        }
+        player.getInventory().addItem(spawnerItem);
+
+        player.sendMessage("§a✓ Bought §e" + amount + "x " + entry.displayName
+                + " Spawner §afor §e$" + formatMoney(totalCost));
+        player.sendMessage("§7New balance: §a$" + formatMoney(economy.getBalance(player)));
+        player.sendMessage("§7▸ Place in faction territory to start earning value!");
+    }
+
+    private SpawnerEntry findSpawnerEntry(EntityType type) {
+        for (SpawnerEntry e : spawnerEntries) {
+            if (e.entityType == type) return e;
+        }
+        return null;
     }
 
     private void buyItem(Player player, ShopItem item, int amount) {
@@ -445,14 +611,15 @@ public class ShopGUI implements Listener {
 
     private String getCategoryDisplayName(String category) {
         return switch (category) {
-            case "blocks" -> "Blocks";
-            case "ores" -> "Ores & Minerals";
-            case "farming" -> "Farming";
-            case "food" -> "Food";
-            case "combat" -> "Combat";
-            case "raiding" -> "Raiding";
-            case "misc" -> "Miscellaneous";
-            default -> "Shop";
+            case "blocks"   -> "Blocks";
+            case "ores"     -> "Ores & Minerals";
+            case "farming"  -> "Farming";
+            case "food"     -> "Food";
+            case "combat"   -> "Combat";
+            case "raiding"  -> "Raiding";
+            case "misc"     -> "Miscellaneous";
+            case "spawners" -> "Spawners";
+            default         -> "Shop";
         };
     }
 
@@ -465,6 +632,23 @@ public class ShopGUI implements Listener {
             return String.format("%.1fK", amount / 1_000);
         } else {
             return String.format("%.2f", amount);
+        }
+    }
+
+    /**
+     * Spawner shop entry (buy-only; placed spawner values ramp up over 48h in faction territory).
+     */
+    private static class SpawnerEntry {
+        final EntityType entityType;
+        final String displayName;
+        final double buyPrice;
+        final double factionValue; // actual territory base value (from SpawnerType)
+
+        SpawnerEntry(EntityType entityType, String displayName, double buyPrice, double factionValue) {
+            this.entityType   = entityType;
+            this.displayName  = displayName;
+            this.buyPrice     = buyPrice;
+            this.factionValue = factionValue;
         }
     }
 
