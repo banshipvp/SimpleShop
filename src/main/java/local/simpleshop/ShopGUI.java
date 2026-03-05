@@ -226,55 +226,73 @@ public class ShopGUI implements Listener {
      * Open the main shop menu
      */
     public void openMainShop(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 54, "§6§l⚡ Shop Categories");
+        Inventory inv = Bukkit.createInventory(null, 54, "§5✦ §d§lFACTION MARKET §5✦");
 
-        // Blocks category
-        ItemStack blocksIcon = createIcon(Material.STONE, "§a§lBlocks", 
-            "§7Building materials", "§7Stone, Wood, Glass, etc.", "§e§lClick to browse!");
-        inv.setItem(10, blocksIcon);
+        // ── Row 0: Header bar ─────────────────────────────────────────────
+        inv.setItem(0, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(1, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(2, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(3, pane(Material.CYAN_STAINED_GLASS_PANE));
+        ItemStack titlePiece = new ItemStack(Material.NETHER_STAR);
+        ItemMeta tm = titlePiece.getItemMeta();
+        tm.setDisplayName("§d§l✦ Faction Market §d§l✦");
+        tm.setLore(List.of("§7Browse categories below", "§7to buy and sell items"));
+        titlePiece.setItemMeta(tm);
+        inv.setItem(4, titlePiece);
+        inv.setItem(5, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(6, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(7, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(8, pane(Material.PURPLE_STAINED_GLASS_PANE));
 
-        // Ores category
-        ItemStack oresIcon = createIcon(Material.DIAMOND, "§b§lOres & Minerals",
-            "§7Ores and ingots", "§7Coal, Iron, Diamond, etc.", "§e§lClick to browse!");
-        inv.setItem(11, oresIcon);
+        // ── Row 1: Spacer ─────────────────────────────────────────────────
+        inv.setItem(9,  pane(Material.PURPLE_STAINED_GLASS_PANE));
+        for (int s = 10; s <= 16; s++) inv.setItem(s, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(17, pane(Material.PURPLE_STAINED_GLASS_PANE));
 
-        // Farming category
-        ItemStack farmIcon = createIcon(Material.WHEAT, "§2§lFarming",
-            "§7Crops and seeds", "§7Wheat, Carrots, etc.", "§e§lClick to browse!");
-        inv.setItem(12, farmIcon);
+        // ── Row 2: Categories 1–4 ─────────────────────────────────────────
+        inv.setItem(18, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(19, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(20, createCategoryIcon(Material.STONE,       "§b§lBlocks",   "Building materials",  "Stone, Wood, Glass & more"));
+        inv.setItem(21, createCategoryIcon(Material.DIAMOND,     "§e§lMinerals", "Ores and ingots",    "Coal, Iron, Diamond & more"));
+        inv.setItem(22, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(23, createCategoryIcon(Material.WHEAT,       "§a§lFarming",  "Crops and seeds",    "Wheat, Carrots & more"));
+        inv.setItem(24, createCategoryIcon(Material.COOKED_BEEF, "§6§lFood",     "Cooked food items",  "Bread, Steak & more"));
+        inv.setItem(25, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(26, pane(Material.PURPLE_STAINED_GLASS_PANE));
 
-        // Food category
-        ItemStack foodIcon = createIcon(Material.COOKED_BEEF, "§6§lFood",
-            "§7Cooked food items", "§7Bread, Meat, etc.", "§e§lClick to browse!");
-        inv.setItem(13, foodIcon);
+        // ── Row 3: Categories 5–8 ─────────────────────────────────────────
+        inv.setItem(27, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(28, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(29, createCategoryIcon(Material.DIAMOND_SWORD, "§c§lCombat",   "Arrows, Pearls, TNT",     "PvP essentials"));
+        inv.setItem(30, createCategoryIcon(Material.DISPENSER,     "§4§lRaiding",  "Cannon components",       "TNT, Repeaters & more"));
+        inv.setItem(31, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(32, createCategoryIcon(Material.ENDER_EYE,     "§d§lMisc",     "Special items",           "Rare drops, XP & more"));
+        inv.setItem(33, createCategoryIcon(Material.SPAWNER,       "§5§lSpawners", "All spawner types",       "Value ramps to 100% at 48h"));
+        inv.setItem(34, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(35, pane(Material.PURPLE_STAINED_GLASS_PANE));
 
-        // Combat category
-        ItemStack combatIcon = createIcon(Material.DIAMOND_SWORD, "§c§lCombat",
-            "§7Arrows, Pearls, TNT", "§7Combat essentials", "§e§lClick to browse!");
-        inv.setItem(14, combatIcon);
+        // ── Row 4: Utility bar ────────────────────────────────────────────
+        inv.setItem(36, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(37, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(38, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(39, createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
+                "§a$" + formatMoney(economy.getBalance(player))));
+        inv.setItem(40, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(41, createIcon(Material.EMERALD, "§a§lSell Inventory",
+                "§7Instantly sells all eligible",
+                "§7items in your inventory.",
+                "§8────────────────────",
+                "§d§l▸ §eClick to sell all!"));
+        inv.setItem(42, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(43, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(44, pane(Material.PURPLE_STAINED_GLASS_PANE));
 
-        // Misc category
-        ItemStack miscIcon = createIcon(Material.ENDER_EYE, "§d§lMiscellaneous",
-            "§7Special items", "§7Rare drops, XP, etc.", "§e§lClick to browse!");
-        inv.setItem(15, miscIcon);
-
-        // Raiding category
-        ItemStack raidingIcon = createIcon(Material.DISPENSER, "§4§lRaiding",
-            "§7Cannon essentials", "§7TNT, Redstone, Repeaters, etc.", "§e§lClick to browse!");
-        inv.setItem(16, raidingIcon);
-
-        // Spawners category
-        ItemStack spawnersIcon = createIcon(Material.SPAWNER, "§5§lSpawners",
-            "§7All spawner types",
-            "§7Values ramp from §e50%§7 at placement",
-            "§7to §e100%§7 after 48 hours in your territory",
-            "§e§lClick to browse!");
-        inv.setItem(29, spawnersIcon);
-
-        // Balance display
-        ItemStack balanceIcon = createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
-            "§a$" + formatMoney(economy.getBalance(player)));
-        inv.setItem(40, balanceIcon);
+        // ── Row 5: Footer ─────────────────────────────────────────────────
+        inv.setItem(45, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(46, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        for (int s = 47; s <= 51; s++) inv.setItem(s, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(52, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(53, pane(Material.PURPLE_STAINED_GLASS_PANE));
 
         player.openInventory(inv);
     }
@@ -292,39 +310,52 @@ public class ShopGUI implements Listener {
         if (items == null) return;
 
         String categoryName = getCategoryDisplayName(category);
-        Inventory inv = Bukkit.createInventory(null, 54, "§6§lShop - " + categoryName);
+        Inventory inv = Bukkit.createInventory(null, 54, "§5✦ §d§l" + categoryName);
 
-        int slot = 0;
+        // ── Row 0: Category header ────────────────────────────────────────
+        inv.setItem(0, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(1, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(2, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(3, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(4, createCategoryHeaderIcon(category, categoryName));
+        inv.setItem(5, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(6, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(7, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(8, pane(Material.PURPLE_STAINED_GLASS_PANE));
+
+        // ── Rows 1–4: Items (slots 9–44, 36 slots) ───────────────────────
+        int slot = 9;
         for (ShopItem item : items) {
             if (slot >= 45) break;
-
             ItemStack displayItem = new ItemStack(item.material);
             ItemMeta meta = displayItem.getItemMeta();
-            meta.setDisplayName("§e§l" + item.name);
-            
-            List<String> lore = new ArrayList<>();
-            lore.add("§7");
-            lore.add("§aBuy Price: §e$" + formatMoney(item.buyPrice));
-            lore.add("§cSell Price: §e$" + formatMoney(item.sellPrice));
-            lore.add("§7");
-            lore.add("§e▸ Left Click: §aBuy 1");
-            lore.add("§e▸ Shift + Left: §aBuy 64");
-            lore.add("§e▸ Right Click: §cSell 1");
-            lore.add("§e▸ Shift + Right: §cSell 64");
-            meta.setLore(lore);
-            
+            meta.setDisplayName("§f§l" + item.name);
+            meta.setLore(List.of(
+                "§8────────────────────",
+                "§aBuy:  §e$" + formatMoney(item.buyPrice) + " §8each",
+                "§cSell: §e$" + formatMoney(item.sellPrice) + " §8each",
+                "§8────────────────────",
+                "§7▸ §eLeft-click   §7→ §abuy 1",
+                "§7▸ §eShift+Left   §7→ §abuy 64",
+                "§7▸ §eRight-click  §7→ §csell 1",
+                "§7▸ §eShift+Right  §7→ §csell 64"
+            ));
             displayItem.setItemMeta(meta);
             inv.setItem(slot++, displayItem);
         }
 
-        // Back button
-        ItemStack backButton = createIcon(Material.ARROW, "§c§lBack to Categories");
-        inv.setItem(49, backButton);
-
-        // Balance display
-        ItemStack balanceIcon = createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
-            "§a$" + formatMoney(economy.getBalance(player)));
-        inv.setItem(48, balanceIcon);
+        // ── Row 5: Navigation footer ──────────────────────────────────────
+        inv.setItem(45, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(46, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(47, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(48, createIcon(Material.SPECTRAL_ARROW, "§c§l« Back to Market",
+                "§7Return to the main market"));
+        inv.setItem(49, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(50, createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
+                "§a$" + formatMoney(economy.getBalance(player))));
+        inv.setItem(51, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(52, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(53, pane(Material.PURPLE_STAINED_GLASS_PANE));
 
         player.openInventory(inv);
     }
@@ -334,22 +365,43 @@ public class ShopGUI implements Listener {
      * Spawners are buy-only; their in-faction value ramps up over 48 hours.
      */
     private void openSpawnersCategory(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 54, "§6§lShop - Spawners");
+        Inventory inv = Bukkit.createInventory(null, 54, "§5✦ §d§lSpawners");
 
-        int slot = 0;
+        // ── Row 0: Header ─────────────────────────────────────────────────
+        inv.setItem(0, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(1, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(2, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(3, pane(Material.CYAN_STAINED_GLASS_PANE));
+        ItemStack hdr = new ItemStack(Material.SPAWNER);
+        ItemMeta hm = hdr.getItemMeta();
+        hm.setDisplayName("§5§lSpawners");
+        hm.setLore(List.of("§7Left-click §8→ §abuy 1", "§7Shift-click §8→ §abuy 16"));
+        hdr.setItemMeta(hm);
+        inv.setItem(4, hdr);
+        inv.setItem(5, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(6, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(7, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(8, pane(Material.PURPLE_STAINED_GLASS_PANE));
+
+        // ── Rows 1–4: Spawner items (slots 9–44) ─────────────────────────
+        int slot = 9;
         for (SpawnerEntry entry : spawnerEntries) {
             if (slot >= 45) break;
             inv.setItem(slot++, createSpawnerDisplayItem(entry));
         }
 
-        // Back button
-        ItemStack backButton = createIcon(Material.ARROW, "§c§lBack to Categories");
-        inv.setItem(49, backButton);
-
-        // Balance display
-        ItemStack balanceIcon = createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
-                "§a$" + formatMoney(economy.getBalance(player)));
-        inv.setItem(48, balanceIcon);
+        // ── Row 5: Navigation footer ──────────────────────────────────────
+        inv.setItem(45, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(46, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(47, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(48, createIcon(Material.SPECTRAL_ARROW, "§c§l« Back to Market",
+                "§7Return to the main market"));
+        inv.setItem(49, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(50, createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
+                "§a$" + formatMoney(economy.getBalance(player))));
+        inv.setItem(51, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(52, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(53, pane(Material.PURPLE_STAINED_GLASS_PANE));
 
         player.openInventory(inv);
     }
@@ -389,61 +441,71 @@ public class ShopGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) return;
         
         String title = event.getView().getTitle();
-        
-        if (!title.contains("Shop")) return;
-        
+
+        // Gate: only handle Faction Market GUIs
+        if (!title.startsWith("§5✦")) return;
+
         event.setCancelled(true);
 
-        if (event.getClickedInventory() == null || !event.getClickedInventory().equals(event.getView().getTopInventory())) {
+        if (event.getClickedInventory() == null
+                || !event.getClickedInventory().equals(event.getView().getTopInventory())) {
             return;
         }
-        
+
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || !clicked.hasItemMeta()) return;
-        
+
         String displayName = clicked.getItemMeta().getDisplayName();
-        
-        // Main shop menu
-        if (title.contains("Categories")) {
-            if (displayName.contains("Blocks")) {
-                openCategory(player, "blocks");
-            } else if (displayName.contains("Ores")) {
-                openCategory(player, "ores");
-            } else if (displayName.contains("Farming")) {
-                openCategory(player, "farming");
-            } else if (displayName.contains("Food")) {
-                openCategory(player, "food");
-            } else if (displayName.contains("Combat")) {
-                openCategory(player, "combat");
-            } else if (displayName.contains("Miscellaneous")) {
-                openCategory(player, "misc");
-            } else if (displayName.contains("Raiding")) {
-                openCategory(player, "raiding");
-            } else if (displayName.contains("Spawners")) {
-                openCategory(player, "spawners");
+
+        // ── Main market menu ─────────────────────────────────────────────
+        if (title.contains("FACTION MARKET")) {
+            if (displayName.contains("Blocks"))    { openCategory(player, "blocks");  return; }
+            if (displayName.contains("Minerals"))  { openCategory(player, "ores");    return; }
+            if (displayName.contains("Farming"))   { openCategory(player, "farming"); return; }
+            if (displayName.contains("Food"))      { openCategory(player, "food");    return; }
+            if (displayName.contains("Combat"))    { openCategory(player, "combat");  return; }
+            if (displayName.contains("Raiding"))   { openCategory(player, "raiding"); return; }
+            if (displayName.contains("Misc"))      { openCategory(player, "misc");    return; }
+            if (displayName.contains("Spawners"))  { openCategory(player, "spawners"); return; }
+            // Sell Inventory button
+            if (displayName.contains("Sell Inventory")) {
+                double total = 0;
+                for (ItemStack stack : player.getInventory().getContents()) {
+                    if (stack == null || stack.getType() == Material.AIR) continue;
+                    double price = getSellPrice(stack.getType());
+                    if (price > 0) {
+                        total += price * stack.getAmount();
+                        player.getInventory().remove(stack);
+                    }
+                }
+                if (total > 0) {
+                    economy.depositPlayer(player, total);
+                    player.sendMessage("§a✓ Sold inventory for §e$" + formatMoney(total));
+                } else {
+                    player.sendMessage("§cNo sellable items found in your inventory.");
+                }
+                // Refresh balance display
+                event.getView().getTopInventory().setItem(39, createIcon(
+                        Material.GOLD_INGOT, "§e§lYour Balance",
+                        "§a$" + formatMoney(economy.getBalance(player))));
+                return;
             }
             return;
         }
 
-        // Spawners category menu
+        // ── Spawners category ────────────────────────────────────────────
         if (title.contains("Spawners")) {
-            if (displayName.contains("Back to Categories")) {
-                openMainShop(player);
-                return;
-            }
+            if (displayName.contains("Back to Market")) { openMainShop(player); return; }
             if (displayName.contains("Balance")) return;
 
-            // Detect which spawner type was clicked via BlockStateMeta
-            if (clicked.getType() == Material.SPAWNER && clicked.hasItemMeta()
-                    && clicked.getItemMeta() instanceof BlockStateMeta bsm) {
+            if (clicked.getType() == Material.SPAWNER && clicked.getItemMeta() instanceof BlockStateMeta bsm) {
                 BlockState state = bsm.getBlockState();
                 if (state instanceof CreatureSpawner cs && cs.getSpawnedType() != null) {
                     SpawnerEntry entry = findSpawnerEntry(cs.getSpawnedType());
                     if (entry != null) {
                         int amount = event.isShiftClick() ? 16 : 1;
                         buySpawner(player, entry, amount);
-                        // Refresh balance
-                        event.getView().getTopInventory().setItem(48, createIcon(
+                        event.getView().getTopInventory().setItem(50, createIcon(
                                 Material.GOLD_INGOT, "§e§lYour Balance",
                                 "§a$" + formatMoney(economy.getBalance(player))));
                     }
@@ -451,41 +513,29 @@ public class ShopGUI implements Listener {
             }
             return;
         }
-        
-        // Category menus
-        if (displayName.contains("Back to Categories")) {
-            openMainShop(player);
-            return;
-        }
-        
-        if (displayName.contains("Balance")) {
-            return;
-        }
-        
-        // Handle buy/sell
+
+        // ── Item category pages ──────────────────────────────────────────
+        if (displayName.contains("Back to Market")) { openMainShop(player); return; }
+        if (displayName.contains("Balance")) return;
+        // ignore glass pane decorations
+        if (displayName.equals("§r")) return;
+
         Material itemType = clicked.getType();
         ShopItem shopItem = findShopItem(itemType);
-        
         if (shopItem == null) return;
-        
-        boolean isShiftClick = event.isShiftClick();
-        boolean isLeftClick = event.isLeftClick();
-        int amount = isShiftClick ? 64 : 1;
-        
-        if (isLeftClick) {
-            // Buy
+
+        int amount = event.isShiftClick() ? 64 : 1;
+        if (event.isLeftClick()) {
             buyItem(player, shopItem, amount);
         } else {
-            // Sell
             sellItem(player, shopItem, amount);
         }
-        
-        // Update balance display in-place so cursor/crosshair position stays stable
-        event.getView().getTopInventory().setItem(48, createIcon(
-            Material.GOLD_INGOT,
-            "§e§lYour Balance",
-            "§a$" + formatMoney(economy.getBalance(player))
-        ));
+
+        // Refresh balance in-place (slot 50 in category pages)
+        event.getView().getTopInventory().setItem(50, createIcon(
+                Material.GOLD_INGOT,
+                "§e§lYour Balance",
+                "§a$" + formatMoney(economy.getBalance(player))));
     }
 
     private void buySpawner(Player player, SpawnerEntry entry, int amount) {
@@ -598,6 +648,51 @@ public class ShopGUI implements Listener {
             }
         }
         return "blocks";
+    }
+
+    // ── Decorative glass pane (invisible name so tooltips are clean) ──────────
+    private ItemStack pane(Material material) {
+        ItemStack p = new ItemStack(material);
+        ItemMeta m = p.getItemMeta();
+        m.setDisplayName("§r");
+        p.setItemMeta(m);
+        return p;
+    }
+
+    // ── Category button shown on the main market screen ──────────────────────
+    private ItemStack createCategoryIcon(Material material, String name, String tagline, String detail) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(name);
+        meta.setLore(List.of(
+            "§8────────────────────",
+            "§7" + tagline,
+            "§7" + detail,
+            "§8────────────────────",
+            "§d§l▸ §eClick to browse!"
+        ));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    // ── Header icon displayed at the top of category pages ───────────────────
+    private ItemStack createCategoryHeaderIcon(String category, String displayName) {
+        Material mat = switch (category) {
+            case "blocks"  -> Material.STONE;
+            case "ores"    -> Material.DIAMOND;
+            case "farming" -> Material.WHEAT;
+            case "food"    -> Material.COOKED_BEEF;
+            case "combat"  -> Material.DIAMOND_SWORD;
+            case "raiding" -> Material.DISPENSER;
+            case "misc"    -> Material.ENDER_EYE;
+            default        -> Material.CHEST;
+        };
+        ItemStack item = new ItemStack(mat);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName("§d§l" + displayName);
+        meta.setLore(List.of("§7Left-click §8→ §abuy", "§7Right-click §8→ §csell"));
+        item.setItemMeta(meta);
+        return item;
     }
 
     private ItemStack createIcon(Material material, String name, String... lore) {
