@@ -213,13 +213,13 @@ public class ShopGUI implements Listener {
         spawnerEntries.add(new SpawnerEntry(EntityType.SKELETON,         "Skeleton",            120_000,   120_000));
         spawnerEntries.add(new SpawnerEntry(EntityType.SLIME,            "Slime",               175_000,   175_000));
         spawnerEntries.add(new SpawnerEntry(EntityType.ZOMBIFIED_PIGLIN, "Zombified Piglin",    185_000,   185_000));
-        spawnerEntries.add(new SpawnerEntry(EntityType.BLAZE,            "Blaze",               500_000,   200_000));
-        spawnerEntries.add(new SpawnerEntry(EntityType.CREEPER,          "Creeper",             500_000,   150_000));
-        spawnerEntries.add(new SpawnerEntry(EntityType.MAGMA_CUBE,       "Magma Cube",        1_800_000,   250_000));
-        spawnerEntries.add(new SpawnerEntry(EntityType.GHAST,            "Ghast",             2_000_000,   350_000));
-        spawnerEntries.add(new SpawnerEntry(EntityType.IRON_GOLEM,       "Iron Golem",        2_000_000,   300_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.BLAZE,            "Blaze",               500_000,   500_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.CREEPER,          "Creeper",             500_000,   500_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.MAGMA_CUBE,       "Magma Cube",        1_800_000, 1_250_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.GHAST,            "Ghast",             2_000_000, 1_500_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.IRON_GOLEM,       "Iron Golem",        2_000_000, 2_000_000));
         spawnerEntries.add(new SpawnerEntry(EntityType.SNOWMAN,          "Snowman",          10_000_000,10_000_000));
-        spawnerEntries.add(new SpawnerEntry(EntityType.WARDEN,           "Warden",           15_000_000,   500_000));
+        spawnerEntries.add(new SpawnerEntry(EntityType.WARDEN,           "Warden",           15_000_000,15_000_000));
     }
 
     /**
