@@ -12,3 +12,16 @@ commands:
   sellall:
     description: Sell all inventory items at shop prices
     usage: /sellall
+  shopadd:
+    description: Add an item or category to the shop
+    usage: /shopadd <material> <category> <buy> <sell> | /shopadd category <id> <icon> [position]
+    permission: simpleshop.admin
+  shopedit:
+    description: Edit an existing shop category
+    usage: /shopedit <category> <position|name|icon|tagline|color|remove> <value>
+    permission: simpleshop.admin
+
+permissions:
+  simpleshop.admin:
+    description: Access to /shopadd and /shopedit
+    default: op

@@ -16,6 +16,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class SimpleShopPlugin extends JavaPlugin {
 
     private Economy economy;
+    private ShopConfig shopConfig;
     private ShopGUI shopGUI;
 
     @Override
@@ -26,8 +27,16 @@ public class SimpleShopPlugin extends JavaPlugin {
             return;
         }
 
-        shopGUI = new ShopGUI(this, economy);
-        
+        shopConfig = new ShopConfig(this);
+        shopConfig.load();
+
+        shopGUI = new ShopGUI(this, economy, shopConfig);
+
+        getCommand("shopadd").setExecutor(new ShopAddCommand(this));
+        getCommand("shopadd").setTabCompleter(new ShopAddCommand(this));
+        getCommand("shopedit").setExecutor(new ShopEditCommand(this));
+        getCommand("shopedit").setTabCompleter(new ShopEditCommand(this));
+
         getLogger().info("SimpleShop enabled successfully!");
     }
 
@@ -68,6 +77,10 @@ public class SimpleShopPlugin extends JavaPlugin {
             return true;
         }
 
+        if (command.getName().equalsIgnoreCase("shopadd") || command.getName().equalsIgnoreCase("shopedit")) {
+            return false; // handled via setExecutor
+        }
+
         return false;
     }
 
@@ -99,6 +112,10 @@ public class SimpleShopPlugin extends JavaPlugin {
 
     public Economy getEconomy() {
         return economy;
+    }
+
+    public ShopConfig getShopConfig() {
+        return shopConfig;
     }
 
     public ShopGUI getShopGUI() {
