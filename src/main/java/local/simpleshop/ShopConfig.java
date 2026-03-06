@@ -8,6 +8,8 @@ import org.bukkit.entity.EntityType;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -64,6 +66,9 @@ public class ShopConfig {
         }
         yaml = YamlConfiguration.loadConfiguration(file);
         parse();
+        if (shouldNormalizeYamlFormat()) {
+            save();
+        }
     }
 
     public void save() {
@@ -119,25 +124,14 @@ public class ShopConfig {
                 ShopCategory cat = new ShopCategory();
                 cat.id          = id;
                 cat.position    = cs.getInt("position", 99);
-                cat.displayName = cs.getString("display-name", id);
+                cat.displayName = cs.getString("display-name",
+                        cs.getString("displayName", capitalizeWords(id)));
                 cat.icon        = parseMaterial(cs.getString("icon", "CHEST"), Material.CHEST);
                 cat.color       = cs.getString("color", "§f§l");
                 cat.tagline     = cs.getString("tagline", "");
                 cat.detail      = cs.getString("detail", "");
 
-                ConfigurationSection items = cs.getConfigurationSection("items");
-                if (items != null) {
-                    for (String matKey : items.getKeys(false)) {
-                        ConfigurationSection is = items.getConfigurationSection(matKey);
-                        if (is == null) continue;
-                        Material mat = parseMaterial(matKey.toUpperCase(), null);
-                        if (mat == null) continue;
-                        String displayName = is.getString("display-name", matKey);
-                        double buy  = is.getDouble("buy", 0);
-                        double sell = is.getDouble("sell", 0);
-                        cat.items.add(new ShopGUI.ShopItem(mat, displayName, buy, sell));
-                    }
-                }
+                loadCategoryItems(cat, cs);
                 loaded.add(cat);
             }
 
@@ -148,19 +142,201 @@ public class ShopConfig {
         }
 
         ConfigurationSection spawnSection = yaml.getConfigurationSection("spawners");
-        if (spawnSection != null) {
-            for (String key : spawnSection.getKeys(false)) {
-                ConfigurationSection ss = spawnSection.getConfigurationSection(key);
-                if (ss == null) continue;
-                try {
-                    EntityType et = EntityType.valueOf(key.toUpperCase());
-                    String displayName = ss.getString("display-name", key);
-                    double buy   = ss.getDouble("buy", 0);
-                    double fv    = ss.getDouble("faction-value", buy);
-                    spawnerEntries.add(new ShopGUI.SpawnerEntry(et, displayName, buy, fv));
-                } catch (IllegalArgumentException ignored) {}
+        loadSpawners(spawnSection);
+
+        if (spawnerEntries.isEmpty()) {
+            loadFallbackSpawnersFromBundledConfig();
+            if (!spawnerEntries.isEmpty()) {
+                plugin.getLogger().warning("shop.yml has no spawners section; restored default spawner entries.");
+                save();
             }
         }
+    }
+
+    private void loadFallbackSpawnersFromBundledConfig() {
+        var in = plugin.getResource("shop.yml");
+        if (in == null) {
+            return;
+        }
+
+        FileConfiguration defaults = YamlConfiguration.loadConfiguration(
+                new InputStreamReader(in, StandardCharsets.UTF_8));
+
+        Object raw = defaults.get("spawners");
+        if (raw instanceof ConfigurationSection section) {
+            for (String key : section.getKeys(false)) {
+                ConfigurationSection ss = section.getConfigurationSection(key);
+                if (ss == null) continue;
+                try {
+                    EntityType type = EntityType.valueOf(key.toUpperCase());
+                    String fallbackName = capitalizeWords(key.replace('_', ' '));
+                    String displayName = ss.getString("display-name",
+                            ss.getString("displayName", fallbackName));
+                    double buy = ss.getDouble("buy", ss.getDouble("buyPrice", 0.0));
+                    double factionValue = ss.getDouble("faction-value",
+                            ss.getDouble("factionValue", buy));
+                    spawnerEntries.add(new ShopGUI.SpawnerEntry(type, displayName, buy, factionValue));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            return;
+        }
+
+        if (!(raw instanceof List)) {
+            return;
+        }
+
+        for (Map<?, ?> row : defaults.getMapList("spawners")) {
+            String entityRaw = Objects.toString(row.get("entityType"), "");
+            if (entityRaw.isEmpty()) continue;
+
+            try {
+                EntityType type = EntityType.valueOf(entityRaw.toUpperCase());
+                String fallbackName = capitalizeWords(entityRaw.replace('_', ' '));
+                Object displayNameRaw = valueOr(valueOf(row, "display-name"), valueOf(row, "displayName"));
+                String displayName = Objects.toString(displayNameRaw, fallbackName);
+                double buy = toDouble(valueOr(valueOf(row, "buy"), valueOf(row, "buyPrice")), 0.0);
+                double factionValue = toDouble(valueOr(valueOf(row, "faction-value"), valueOf(row, "factionValue")), buy);
+                spawnerEntries.add(new ShopGUI.SpawnerEntry(type, displayName, buy, factionValue));
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+    }
+
+    private void loadCategoryItems(ShopCategory cat, ConfigurationSection categorySection) {
+        Object rawItems = categorySection.get("items");
+
+        if (rawItems instanceof ConfigurationSection itemsSection) {
+            // New format:
+            // items:
+            //   stone:
+            //     display-name: "Stone"
+            //     buy: 2.0
+            //     sell: 1.0
+            for (String matKey : itemsSection.getKeys(false)) {
+                ConfigurationSection itemSection = itemsSection.getConfigurationSection(matKey);
+                if (itemSection == null) continue;
+
+                Material material = parseMaterial(matKey.toUpperCase(), null);
+                if (material == null) continue;
+
+                String fallbackName = capitalizeWords(matKey.replace('_', ' '));
+                String displayName = itemSection.getString("display-name",
+                        itemSection.getString("name", fallbackName));
+                double buy = itemSection.getDouble("buy", 0.0);
+                double sell = itemSection.getDouble("sell", 0.0);
+                cat.items.add(new ShopGUI.ShopItem(material, displayName, buy, sell));
+            }
+            return;
+        }
+
+        // Legacy format:
+        // items:
+        //   - material: "STONE"
+        //     name: "Stone"
+        //     buy: 2.0
+        //     sell: 1.0
+        for (Map<?, ?> entry : categorySection.getMapList("items")) {
+            Object matObj = entry.get("material");
+            if (matObj == null) continue;
+
+            Material material = parseMaterial(matObj.toString(), null);
+            if (material == null) continue;
+
+            String fallbackName = capitalizeWords(material.name().replace('_', ' '));
+                Object displayNameRaw = valueOr(valueOf(entry, "display-name"), valueOf(entry, "name"));
+                String displayName = Objects.toString(displayNameRaw, fallbackName);
+
+            double buy = toDouble(entry.get("buy"), 0.0);
+            double sell = toDouble(entry.get("sell"), 0.0);
+
+            cat.items.add(new ShopGUI.ShopItem(material, displayName, buy, sell));
+        }
+    }
+
+    private void loadSpawners(ConfigurationSection spawnSection) {
+        Object raw = yaml.get("spawners");
+        if (raw instanceof ConfigurationSection section) {
+            // New format:
+            // spawners:
+            //   zombie:
+            //     display-name: "Zombie"
+            //     buy: 100000
+            //     faction-value: 100000
+            for (String key : section.getKeys(false)) {
+                ConfigurationSection ss = section.getConfigurationSection(key);
+                if (ss == null) continue;
+                try {
+                    EntityType type = EntityType.valueOf(key.toUpperCase());
+                    String fallbackName = capitalizeWords(key.replace('_', ' '));
+                    String displayName = ss.getString("display-name",
+                            ss.getString("displayName", fallbackName));
+                    double buy = ss.getDouble("buy", ss.getDouble("buyPrice", 0.0));
+                    double factionValue = ss.getDouble("faction-value",
+                            ss.getDouble("factionValue", buy));
+                    spawnerEntries.add(new ShopGUI.SpawnerEntry(type, displayName, buy, factionValue));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            return;
+        }
+
+        if (!(raw instanceof List)) {
+            return;
+        }
+
+        // Legacy list format
+        for (Map<?, ?> row : yaml.getMapList("spawners")) {
+            String entityRaw = Objects.toString(row.get("entityType"), "");
+            if (entityRaw.isEmpty()) continue;
+
+            try {
+                EntityType type = EntityType.valueOf(entityRaw.toUpperCase());
+                String fallbackName = capitalizeWords(entityRaw.replace('_', ' '));
+                Object displayNameRaw = valueOr(valueOf(row, "display-name"), valueOf(row, "displayName"));
+                String displayName = Objects.toString(displayNameRaw, fallbackName);
+                double buy = toDouble(valueOr(valueOf(row, "buy"), valueOf(row, "buyPrice")), 0.0);
+                double factionValue = toDouble(valueOr(valueOf(row, "faction-value"), valueOf(row, "factionValue")), buy);
+                spawnerEntries.add(new ShopGUI.SpawnerEntry(type, displayName, buy, factionValue));
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+    }
+
+    private static Object valueOf(Map<?, ?> map, String key) {
+        return map.get(key);
+    }
+
+    private static Object valueOr(Object primary, Object fallback) {
+        return primary != null ? primary : fallback;
+    }
+
+    private static double toDouble(Object value, double fallback) {
+        if (value == null) return fallback;
+        if (value instanceof Number n) return n.doubleValue();
+        try {
+            return Double.parseDouble(value.toString());
+        } catch (NumberFormatException ex) {
+            return fallback;
+        }
+    }
+
+    private boolean shouldNormalizeYamlFormat() {
+        ConfigurationSection categoriesSection = yaml.getConfigurationSection("categories");
+        if (categoriesSection != null) {
+            for (String id : categoriesSection.getKeys(false)) {
+                ConfigurationSection cs = categoriesSection.getConfigurationSection(id);
+                if (cs == null) continue;
+
+                if (cs.contains("displayName")) return true;
+
+                Object rawItems = cs.get("items");
+                if (rawItems instanceof List) return true;
+            }
+        }
+
+        Object rawSpawners = yaml.get("spawners");
+        return rawSpawners instanceof List;
     }
 
     // ── Public accessors ─────────────────────────────────────────────────────
@@ -330,6 +506,17 @@ public class ShopConfig {
     private static String capitalize(String s) {
         if (s == null || s.isEmpty()) return s;
         return Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase();
+    }
+
+    private static String capitalizeWords(String s) {
+        if (s == null || s.isBlank()) return s;
+        String[] parts = s.trim().split("\\s+");
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) out.append(' ');
+            out.append(capitalize(parts[i]));
+        }
+        return out.toString();
     }
 
     // ── Inner class ──────────────────────────────────────────────────────────

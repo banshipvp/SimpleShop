@@ -22,6 +22,9 @@ import java.util.*;
  */
 public class ShopGUI implements Listener {
 
+    private static final String MAIN_TITLE = "§5✦ §d§lCustom Market";
+    private static final String CATEGORY_TITLE_PREFIX = "§5✦ §d§l";
+
     private final SimpleShopPlugin plugin;
     private final Economy economy;
     private final ShopConfig shopConfig;
@@ -38,59 +41,74 @@ public class ShopGUI implements Listener {
     // =========================================================================
 
     public void openMainShop(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 54, "§5✦ §d§lFACTION MARKET §5✦");
+        Inventory inv = Bukkit.createInventory(null, 54, MAIN_TITLE);
 
         // Row 0: header bar
-        inv.setItem(0, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(1, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(2, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(0, pane(Material.BLACK_STAINED_GLASS_PANE));
+        inv.setItem(1, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(2, pane(Material.LIGHT_BLUE_STAINED_GLASS_PANE));
         inv.setItem(3, pane(Material.CYAN_STAINED_GLASS_PANE));
         ItemStack title = new ItemStack(Material.NETHER_STAR);
         ItemMeta tm = title.getItemMeta();
-        tm.setDisplayName("§d§l✦ Faction Market §d§l✦");
-        tm.setLore(List.of("§7Browse categories below", "§7to buy and sell items"));
+        tm.setDisplayName("§b§l✦ Custom Market ✦");
+        tm.setLore(List.of("§7Browse categories to buy/sell quickly", "§7Styled with a modern custom-shop layout"));
         title.setItemMeta(tm);
         inv.setItem(4, title);
         inv.setItem(5, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(6, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(7, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(8, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(6, pane(Material.LIGHT_BLUE_STAINED_GLASS_PANE));
+        inv.setItem(7, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(8, pane(Material.BLACK_STAINED_GLASS_PANE));
 
         // Row 1: spacer
-        inv.setItem(9,  pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(9,  pane(Material.BLACK_STAINED_GLASS_PANE));
         for (int s = 10; s <= 16; s++) inv.setItem(s, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(17, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(17, pane(Material.BLACK_STAINED_GLASS_PANE));
 
         // Rows 2-3: category buttons (slots 18-26, 27-35) with gray divider at col 4
         List<ShopConfig.ShopCategory> ordered = shopConfig.getCategoriesOrdered();
+        boolean hasSpawners = !shopConfig.getSpawnerEntries().isEmpty();
 
         // We fill slots: row2=19,20,21,  23,24,25   row3=28,29,30,  32,33,34
         // Max 8 visible categories (2 rows × 4 cols, skipping centre col)
         int[] contentSlots = {20, 21, 23, 24, 29, 30, 32, 33};
 
-        inv.setItem(18, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(19, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(18, pane(Material.BLACK_STAINED_GLASS_PANE));
+        inv.setItem(19, pane(Material.GRAY_STAINED_GLASS_PANE));
         inv.setItem(22, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(25, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(26, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(27, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(28, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(25, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(26, pane(Material.BLACK_STAINED_GLASS_PANE));
+        inv.setItem(27, pane(Material.BLACK_STAINED_GLASS_PANE));
+        inv.setItem(28, pane(Material.GRAY_STAINED_GLASS_PANE));
         inv.setItem(31, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(34, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(35, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(34, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(35, pane(Material.BLACK_STAINED_GLASS_PANE));
 
-        for (int i = 0; i < contentSlots.length && i < ordered.size(); i++) {
+        int categorySlotsToRender = hasSpawners
+            ? Math.min(ordered.size(), contentSlots.length - 1)
+            : Math.min(ordered.size(), contentSlots.length);
+
+        for (int i = 0; i < categorySlotsToRender; i++) {
             ShopConfig.ShopCategory cat = ordered.get(i);
             inv.setItem(contentSlots[i],
                     createCategoryIcon(cat.icon, cat.color + cat.displayName, cat.tagline, cat.detail));
+        }
+
+        if (hasSpawners) {
+            int slot = contentSlots[contentSlots.length - 1];
+            inv.setItem(slot, createCategoryIcon(
+                Material.SPAWNER,
+                "§5§lSpawners",
+                "Mob spawner shop",
+                "Buy custom spawners"
+            ));
         }
 
         // Always show spawners in the last slot (slot 33 or next available)
         // already handled above via getCategoriesOrdered() which includes spawners if defined
 
         // Row 4: utility bar
-        inv.setItem(36, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(37, pane(Material.CYAN_STAINED_GLASS_PANE));
+        inv.setItem(36, pane(Material.BLACK_STAINED_GLASS_PANE));
+        inv.setItem(37, pane(Material.GRAY_STAINED_GLASS_PANE));
         inv.setItem(38, pane(Material.GRAY_STAINED_GLASS_PANE));
         inv.setItem(39, createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
                 "§a$" + formatMoney(economy.getBalance(player))));
@@ -101,15 +119,15 @@ public class ShopGUI implements Listener {
                 "§8────────────────────",
                 "§d§l▸ §eClick to sell all!"));
         inv.setItem(42, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(43, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(44, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(43, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(44, pane(Material.BLACK_STAINED_GLASS_PANE));
 
         // Row 5: footer
-        inv.setItem(45, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(46, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        for (int s = 47; s <= 51; s++) inv.setItem(s, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(52, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(53, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        inv.setItem(45, pane(Material.BLACK_STAINED_GLASS_PANE));
+        inv.setItem(46, pane(Material.GRAY_STAINED_GLASS_PANE));
+        for (int s = 47; s <= 51; s++) inv.setItem(s, pane(Material.LIGHT_BLUE_STAINED_GLASS_PANE));
+        inv.setItem(52, pane(Material.GRAY_STAINED_GLASS_PANE));
+        inv.setItem(53, pane(Material.BLACK_STAINED_GLASS_PANE));
 
         player.openInventory(inv);
     }
@@ -127,7 +145,7 @@ public class ShopGUI implements Listener {
         ShopConfig.ShopCategory cat = shopConfig.getCategory(categoryId);
         if (cat == null) return;
 
-        Inventory inv = Bukkit.createInventory(null, 54, "§5✦ §d§l" + cat.displayName);
+        Inventory inv = Bukkit.createInventory(null, 54, CATEGORY_TITLE_PREFIX + cat.displayName);
 
         // Row 0: header
         inv.setItem(0, pane(Material.PURPLE_STAINED_GLASS_PANE));
@@ -156,7 +174,7 @@ public class ShopGUI implements Listener {
     // =========================================================================
 
     private void openSpawnersCategory(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 54, "§5✦ §d§lSpawners");
+        Inventory inv = Bukkit.createInventory(null, 54, CATEGORY_TITLE_PREFIX + "Spawners");
 
         // Row 0: header
         inv.setItem(0, pane(Material.PURPLE_STAINED_GLASS_PANE));
@@ -191,7 +209,9 @@ public class ShopGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) return;
 
         String title = event.getView().getTitle();
-        if (!title.startsWith("§5✦")) return;
+        boolean isMainMenu = MAIN_TITLE.equals(title);
+        boolean isCategoryMenu = title.startsWith(CATEGORY_TITLE_PREFIX);
+        if (!isMainMenu && !isCategoryMenu) return;
 
         event.setCancelled(true);
 
@@ -207,7 +227,7 @@ public class ShopGUI implements Listener {
         if (displayName.equals("§r")) return;
 
         // ── Main market ──────────────────────────────────────────────────────
-        if (title.contains("FACTION MARKET")) {
+        if (isMainMenu) {
             if (displayName.contains("Your Balance")) return;
 
             // Sell Inventory
@@ -221,6 +241,11 @@ public class ShopGUI implements Listener {
                 event.getView().getTopInventory().setItem(39, createIcon(
                         Material.GOLD_INGOT, "§e§lYour Balance",
                         "§a$" + formatMoney(economy.getBalance(player))));
+                return;
+            }
+
+            if (displayName.contains("Spawners")) {
+                openSpawnersCategory(player);
                 return;
             }
 
@@ -441,11 +466,11 @@ public class ShopGUI implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(name);
         meta.setLore(List.of(
-            "§8────────────────────",
+            "§8━━━━━━━━━━━━━━━━━━━━",
             "§7" + tagline,
-            "§7" + detail,
-            "§8────────────────────",
-            "§d§l▸ §eClick to browse!"
+            "§f" + detail,
+            "§8━━━━━━━━━━━━━━━━━━━━",
+            "§b§l▸ §fClick to browse"
         ));
         item.setItemMeta(meta);
         return item;
