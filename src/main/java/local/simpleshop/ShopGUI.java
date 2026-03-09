@@ -22,8 +22,8 @@ import java.util.*;
  */
 public class ShopGUI implements Listener {
 
-    private static final String MAIN_TITLE = "§5✦ §d§lCustom Market";
-    private static final String CATEGORY_TITLE_PREFIX = "§5✦ §d§l";
+    private static final String MAIN_TITLE = "§6§lSimpleShop";
+    private static final String CATEGORY_TITLE_PREFIX = "§8§l[ §6§l";
 
     private final SimpleShopPlugin plugin;
     private final Economy economy;
@@ -43,91 +43,54 @@ public class ShopGUI implements Listener {
     public void openMainShop(Player player) {
         Inventory inv = Bukkit.createInventory(null, 54, MAIN_TITLE);
 
-        // Row 0: header bar
-        inv.setItem(0, pane(Material.BLACK_STAINED_GLASS_PANE));
-        inv.setItem(1, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(2, pane(Material.LIGHT_BLUE_STAINED_GLASS_PANE));
-        inv.setItem(3, pane(Material.CYAN_STAINED_GLASS_PANE));
-        ItemStack title = new ItemStack(Material.NETHER_STAR);
-        ItemMeta tm = title.getItemMeta();
-        tm.setDisplayName("§b§l✦ Custom Market ✦");
-        tm.setLore(List.of("§7Browse categories to buy/sell quickly", "§7Styled with a modern custom-shop layout"));
-        title.setItemMeta(tm);
-        inv.setItem(4, title);
-        inv.setItem(5, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(6, pane(Material.LIGHT_BLUE_STAINED_GLASS_PANE));
-        inv.setItem(7, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(8, pane(Material.BLACK_STAINED_GLASS_PANE));
+        // Gray interior fill
+        ItemStack gray  = grayPane();
+        ItemStack black = blackPane();
+        for (int i = 0; i < 54; i++) inv.setItem(i, gray);
 
-        // Row 1: spacer
-        inv.setItem(9,  pane(Material.BLACK_STAINED_GLASS_PANE));
-        for (int s = 10; s <= 16; s++) inv.setItem(s, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(17, pane(Material.BLACK_STAINED_GLASS_PANE));
+        // Black top and bottom border rows
+        for (int i = 0;  i < 9;  i++) inv.setItem(i, black); // row 1
+        for (int i = 45; i < 54; i++) inv.setItem(i, black); // row 6
 
-        // Rows 2-3: category buttons (slots 18-26, 27-35) with gray divider at col 4
+        // Collect category items
         List<ShopConfig.ShopCategory> ordered = shopConfig.getCategoriesOrdered();
         boolean hasSpawners = !shopConfig.getSpawnerEntries().isEmpty();
-
-        // We fill slots: row2=19,20,21,  23,24,25   row3=28,29,30,  32,33,34
-        // Max 8 visible categories (2 rows × 4 cols, skipping centre col)
-        int[] contentSlots = {20, 21, 23, 24, 29, 30, 32, 33};
-
-        inv.setItem(18, pane(Material.BLACK_STAINED_GLASS_PANE));
-        inv.setItem(19, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(22, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(25, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(26, pane(Material.BLACK_STAINED_GLASS_PANE));
-        inv.setItem(27, pane(Material.BLACK_STAINED_GLASS_PANE));
-        inv.setItem(28, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(31, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(34, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(35, pane(Material.BLACK_STAINED_GLASS_PANE));
-
-        int categorySlotsToRender = hasSpawners
-            ? Math.min(ordered.size(), contentSlots.length - 1)
-            : Math.min(ordered.size(), contentSlots.length);
-
-        for (int i = 0; i < categorySlotsToRender; i++) {
-            ShopConfig.ShopCategory cat = ordered.get(i);
-            inv.setItem(contentSlots[i],
-                    createCategoryIcon(cat.icon, cat.color + cat.displayName, cat.tagline, cat.detail));
+        List<ItemStack> items = new ArrayList<>();
+        for (ShopConfig.ShopCategory cat : ordered) {
+            items.add(createCategoryIcon(cat.icon, cat.color + cat.displayName, cat.tagline, cat.detail));
         }
-
         if (hasSpawners) {
-            int slot = contentSlots[contentSlots.length - 1];
-            inv.setItem(slot, createCategoryIcon(
-                Material.SPAWNER,
-                "§5§lSpawners",
-                "Mob spawner shop",
-                "Buy custom spawners"
-            ));
+            items.add(createCategoryIcon(Material.SPAWNER, "§b§lSpawners", "Mob spawner shop", "Buy custom spawners"));
         }
 
-        // Always show spawners in the last slot (slot 33 or next available)
-        // already handled above via getCategoriesOrdered() which includes spawners if defined
+        // Black column borders (left col=0,9,18,27,36 and right col=8,17,26,35,44)
+        // to give a framed look
+        for (int row = 1; row <= 4; row++) {
+            inv.setItem(row * 9,     black);
+            inv.setItem(row * 9 + 8, black);
+        }
 
-        // Row 4: utility bar
-        inv.setItem(36, pane(Material.BLACK_STAINED_GLASS_PANE));
-        inv.setItem(37, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(38, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(39, createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
+        // Place items across inner rows (rows 2+3 if >7, otherwise centred in row 3)
+        if (items.size() <= 7) {
+            List<Integer> slots = spacedSlots(items.size(), 19, 7);
+            for (int i = 0; i < items.size(); i++) inv.setItem(slots.get(i), items.get(i));
+        } else {
+            int half = (items.size() + 1) / 2;
+            List<Integer> row1 = spacedSlots(half,               10, 7);
+            List<Integer> row2 = spacedSlots(items.size() - half, 19, 7);
+            for (int i = 0; i < row1.size(); i++) inv.setItem(row1.get(i), items.get(i));
+            for (int i = 0; i < row2.size(); i++) inv.setItem(row2.get(i), items.get(half + i));
+        }
+
+        // Bottom bar: back-arrow at 45, balance at 49 centred, sell at 53
+        inv.setItem(45, grayPane());
+        inv.setItem(49, createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
                 "§a$" + formatMoney(economy.getBalance(player))));
-        inv.setItem(40, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(41, createIcon(Material.EMERALD, "§a§lSell Inventory",
+        inv.setItem(53, createIcon(Material.EMERALD, "§a§lSell Inventory",
                 "§7Instantly sells all eligible",
                 "§7items in your inventory.",
                 "§8────────────────────",
-                "§d§l▸ §eClick to sell all!"));
-        inv.setItem(42, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(43, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(44, pane(Material.BLACK_STAINED_GLASS_PANE));
-
-        // Row 5: footer
-        inv.setItem(45, pane(Material.BLACK_STAINED_GLASS_PANE));
-        inv.setItem(46, pane(Material.GRAY_STAINED_GLASS_PANE));
-        for (int s = 47; s <= 51; s++) inv.setItem(s, pane(Material.LIGHT_BLUE_STAINED_GLASS_PANE));
-        inv.setItem(52, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(53, pane(Material.BLACK_STAINED_GLASS_PANE));
+                "§b§l▸ §eClick to sell all!"));
 
         player.openInventory(inv);
     }
@@ -145,20 +108,19 @@ public class ShopGUI implements Listener {
         ShopConfig.ShopCategory cat = shopConfig.getCategory(categoryId);
         if (cat == null) return;
 
-        Inventory inv = Bukkit.createInventory(null, 54, CATEGORY_TITLE_PREFIX + cat.displayName);
+        Inventory inv = Bukkit.createInventory(null, 54, CATEGORY_TITLE_PREFIX + cat.displayName + " §8§l]");
 
-        // Row 0: header
-        inv.setItem(0, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(1, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(2, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(3, pane(Material.CYAN_STAINED_GLASS_PANE));
+        // Gray interior, black top/bottom border rows
+        ItemStack gray  = grayPane();
+        ItemStack black = blackPane();
+        for (int i = 0; i < 54; i++) inv.setItem(i, gray);
+        for (int i = 0;  i < 9;  i++) inv.setItem(i, black);
+        for (int i = 45; i < 54; i++) inv.setItem(i, black);
+
+        // Category header centred in top border row
         inv.setItem(4, createCategoryHeaderIcon(cat));
-        inv.setItem(5, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(6, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(7, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(8, pane(Material.PURPLE_STAINED_GLASS_PANE));
 
-        // Rows 1-4: items (slots 9-44 = 36 slots)
+        // Items fill rows 2-5 (slots 9-44)
         int slot = 9;
         for (ShopItem item : cat.items) {
             if (slot >= 45) break;
@@ -174,22 +136,20 @@ public class ShopGUI implements Listener {
     // =========================================================================
 
     private void openSpawnersCategory(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 54, CATEGORY_TITLE_PREFIX + "Spawners");
+        Inventory inv = Bukkit.createInventory(null, 54, CATEGORY_TITLE_PREFIX + "Spawners §8§l]");
 
-        // Row 0: header
-        inv.setItem(0, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(1, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(2, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(3, pane(Material.CYAN_STAINED_GLASS_PANE));
-        ItemStack hdr = createIcon(Material.SPAWNER, "§5§lSpawners",
-                "§7Left-click §8→ §abuy 1", "§7Shift-click §8→ §abuy 16");
-        inv.setItem(4, hdr);
-        inv.setItem(5, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(6, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(7, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(8, pane(Material.PURPLE_STAINED_GLASS_PANE));
+        // Gray interior, black top/bottom border rows
+        ItemStack gray  = grayPane();
+        ItemStack black = blackPane();
+        for (int i = 0; i < 54; i++) inv.setItem(i, gray);
+        for (int i = 0;  i < 9;  i++) inv.setItem(i, black);
+        for (int i = 45; i < 54; i++) inv.setItem(i, black);
 
-        // Rows 1-4: spawner items
+        // Spawner header centred in top border row
+        inv.setItem(4, createIcon(Material.SPAWNER, "§b§lSpawners",
+                "§7Left-click §8→ §abuy 1", "§7Shift-click §8→ §abuy 16"));
+
+        // Items fill rows 2-5 (slots 9-44)
         int slot = 9;
         for (SpawnerEntry entry : shopConfig.getSpawnerEntries()) {
             if (slot >= 45) break;
@@ -210,7 +170,7 @@ public class ShopGUI implements Listener {
 
         String title = event.getView().getTitle();
         boolean isMainMenu = MAIN_TITLE.equals(title);
-        boolean isCategoryMenu = title.startsWith(CATEGORY_TITLE_PREFIX);
+        boolean isCategoryMenu = !isMainMenu && title.startsWith(CATEGORY_TITLE_PREFIX);
         if (!isMainMenu && !isCategoryMenu) return;
 
         event.setCancelled(true);
@@ -238,13 +198,14 @@ public class ShopGUI implements Listener {
                 } else {
                     player.sendMessage("§cNo sellable items found.");
                 }
-                event.getView().getTopInventory().setItem(39, createIcon(
+                event.getView().getTopInventory().setItem(49, createIcon(
                         Material.GOLD_INGOT, "§e§lYour Balance",
                         "§a$" + formatMoney(economy.getBalance(player))));
                 return;
+
             }
 
-            if (displayName.contains("Spawners")) {
+            if (displayName.contains("Spawners") || displayName.contains("§b§lSpawners")) {
                 openSpawnersCategory(player);
                 return;
             }
@@ -271,7 +232,7 @@ public class ShopGUI implements Listener {
                     SpawnerEntry entry = findSpawnerEntry(cs.getSpawnedType());
                     if (entry != null) {
                         buySpawner(player, entry, event.isShiftClick() ? 16 : 1);
-                        event.getView().getTopInventory().setItem(50, createIcon(
+                        event.getView().getTopInventory().setItem(49, createIcon(
                                 Material.GOLD_INGOT, "§e§lYour Balance",
                                 "§a$" + formatMoney(economy.getBalance(player))));
                     }
@@ -293,7 +254,7 @@ public class ShopGUI implements Listener {
         } else {
             sellItem(player, shopItem, amount);
         }
-        event.getView().getTopInventory().setItem(50, createIcon(
+        event.getView().getTopInventory().setItem(49, createIcon(
                 Material.GOLD_INGOT, "§e§lYour Balance",
                 "§a$" + formatMoney(economy.getBalance(player))));
     }
@@ -403,17 +364,55 @@ public class ShopGUI implements Listener {
     // =========================================================================
 
     private void renderCategoryFooter(Inventory inv, Player player) {
-        inv.setItem(45, pane(Material.PURPLE_STAINED_GLASS_PANE));
-        inv.setItem(46, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(47, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(48, createIcon(Material.SPECTRAL_ARROW, "§c§l« Back to Market",
+        // Row 6 (already black from fill): back at 45, balance at 49
+        inv.setItem(45, createIcon(Material.SPECTRAL_ARROW, "§c§l« Back to Market",
                 "§7Return to the main market"));
-        inv.setItem(49, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(50, createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
+        inv.setItem(49, createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
                 "§a$" + formatMoney(economy.getBalance(player))));
-        inv.setItem(51, pane(Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(52, pane(Material.CYAN_STAINED_GLASS_PANE));
-        inv.setItem(53, pane(Material.PURPLE_STAINED_GLASS_PANE));
+    }
+
+    /** Gray filler pane — ignored by the click handler (name = §r). */
+    private ItemStack grayPane() {
+        ItemStack pane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = pane.getItemMeta();
+        meta.setDisplayName("§r");
+        pane.setItemMeta(meta);
+        return pane;
+    }
+
+    /** Black border pane — ignored by the click handler (name = §r). */
+    private ItemStack blackPane() {
+        ItemStack pane = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemMeta meta = pane.getItemMeta();
+        meta.setDisplayName("§r");
+        pane.setItemMeta(meta);
+        return pane;
+    }
+
+    /**
+     * Distributes {@code count} items evenly across 9 slots in a row.
+     * Returns absolute inventory slot numbers (rowStart = first slot in the row).
+     */
+    /**
+     * Distributes {@code count} items evenly within {@code width} slots starting at {@code rowStart}.
+     */
+    private List<Integer> spacedSlots(int count, int rowStart, int width) {
+        if (count <= 0) return List.of();
+        List<Integer> result = new ArrayList<>();
+        int n = Math.min(count, width);
+        if (n == 1) {
+            result.add(rowStart + width / 2);
+        } else {
+            double step = (width - 1.0) / (n - 1);
+            for (int i = 0; i < n; i++) {
+                result.add(rowStart + (int) Math.round(i * step));
+            }
+        }
+        return result;
+    }
+
+    private List<Integer> spacedSlots(int count, int rowStart) {
+        return spacedSlots(count, rowStart, 9);
     }
 
     private ItemStack createShopItemIcon(ShopItem item) {
