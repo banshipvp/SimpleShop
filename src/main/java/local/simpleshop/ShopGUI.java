@@ -24,10 +24,15 @@ public class ShopGUI implements Listener {
 
     private static final String MAIN_TITLE = "§6§lSimpleShop";
     private static final String CATEGORY_TITLE_PREFIX = "§8§l[ §6§l";
+    private static final int ITEMS_PER_PAGE = 36; // slots 9-44
 
     private final SimpleShopPlugin plugin;
     private final Economy economy;
     private final ShopConfig shopConfig;
+
+    // Track which category and page each player is viewing
+    private final Map<UUID, String>  playerCategory = new HashMap<>();
+    private final Map<UUID, Integer> playerPage     = new HashMap<>();
 
     public ShopGUI(SimpleShopPlugin plugin, Economy economy, ShopConfig shopConfig) {
         this.plugin      = plugin;
@@ -100,6 +105,10 @@ public class ShopGUI implements Listener {
     // =========================================================================
 
     public void openCategory(Player player, String categoryId) {
+        openCategory(player, categoryId, 0);
+    }
+
+    public void openCategory(Player player, String categoryId, int page) {
         if ("spawners".equals(categoryId)) {
             openSpawnersCategory(player);
             return;
@@ -107,6 +116,13 @@ public class ShopGUI implements Listener {
 
         ShopConfig.ShopCategory cat = shopConfig.getCategory(categoryId);
         if (cat == null) return;
+
+        int totalItems = cat.items.size();
+        int totalPages = Math.max(1, (totalItems + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE);
+        int safePage   = Math.max(0, Math.min(page, totalPages - 1));
+
+        playerCategory.put(player.getUniqueId(), categoryId);
+        playerPage.put(player.getUniqueId(), safePage);
 
         Inventory inv = Bukkit.createInventory(null, 54, CATEGORY_TITLE_PREFIX + cat.displayName + " §8§l]");
 
@@ -120,14 +136,15 @@ public class ShopGUI implements Listener {
         // Category header centred in top border row
         inv.setItem(4, createCategoryHeaderIcon(cat));
 
-        // Items fill rows 2-5 (slots 9-44)
+        // Items fill rows 2-5 (slots 9-44) for current page
+        int startIdx = safePage * ITEMS_PER_PAGE;
         int slot = 9;
-        for (ShopItem item : cat.items) {
+        for (int i = startIdx; i < Math.min(startIdx + ITEMS_PER_PAGE, totalItems); i++) {
             if (slot >= 45) break;
-            inv.setItem(slot++, createShopItemIcon(item));
+            inv.setItem(slot++, createShopItemIcon(cat.items.get(i)));
         }
 
-        renderCategoryFooter(inv, player);
+        renderCategoryFooter(inv, player, safePage, totalPages);
         player.openInventory(inv);
     }
 
@@ -244,7 +261,19 @@ public class ShopGUI implements Listener {
         // ── Category item pages ───────────────────────────────────────────────
         if (displayName.contains("Back to Market")) { openMainShop(player); return; }
         if (displayName.contains("Your Balance")) return;
-
+        // Pagination buttons
+        if (displayName.contains("« Previous Page")) {
+            String catId = playerCategory.get(player.getUniqueId());
+            int pg = playerPage.getOrDefault(player.getUniqueId(), 0);
+            if (catId != null && pg > 0) openCategory(player, catId, pg - 1);
+            return;
+        }
+        if (displayName.contains("Next Page »")) {
+            String catId = playerCategory.get(player.getUniqueId());
+            int pg = playerPage.getOrDefault(player.getUniqueId(), 0);
+            if (catId != null) openCategory(player, catId, pg + 1);
+            return;
+        }
         ShopItem shopItem = findShopItem(clicked.getType());
         if (shopItem == null) return;
 
@@ -364,11 +393,22 @@ public class ShopGUI implements Listener {
     // =========================================================================
 
     private void renderCategoryFooter(Inventory inv, Player player) {
-        // Row 6 (already black from fill): back at 45, balance at 49
+        renderCategoryFooter(inv, player, 0, 1);
+    }
+
+    private void renderCategoryFooter(Inventory inv, Player player, int page, int totalPages) {
         inv.setItem(45, createIcon(Material.SPECTRAL_ARROW, "§c§l« Back to Market",
                 "§7Return to the main market"));
         inv.setItem(49, createIcon(Material.GOLD_INGOT, "§e§lYour Balance",
                 "§a$" + formatMoney(economy.getBalance(player))));
+        if (page > 0) {
+            inv.setItem(47, createIcon(Material.ARROW, "§7« Previous Page",
+                    "§7Page " + page + " of " + totalPages));
+        }
+        if (page < totalPages - 1) {
+            inv.setItem(51, createIcon(Material.ARROW, "§7Next Page »",
+                    "§7Page " + (page + 2) + " of " + totalPages));
+        }
     }
 
     /** Gray filler pane — ignored by the click handler (name = §r). */

@@ -69,6 +69,87 @@ public class ShopConfig {
         if (shouldNormalizeYamlFormat()) {
             save();
         }
+        ensureDefaultCategories();
+    }
+
+    /** Adds wool/carpet and glass categories if they don't already exist. */
+    private void ensureDefaultCategories() {
+        boolean changed = false;
+
+        if (!categories.containsKey("wool_carpet")) {
+            ShopCategory cat = new ShopCategory();
+            cat.id          = "wool_carpet";
+            cat.displayName = "Wool & Carpet";
+            cat.icon        = Material.valueOf("WHITE_WOOL");
+            cat.color       = "§d§l";
+            cat.tagline     = "Dye your world";
+            cat.detail      = "All 16 colours of wool & carpet";
+            cat.position    = nextPosition();
+            String[][] wools = {
+                {"WHITE_WOOL","White Wool"},{"ORANGE_WOOL","Orange Wool"},
+                {"MAGENTA_WOOL","Magenta Wool"},{"LIGHT_BLUE_WOOL","Light Blue Wool"},
+                {"YELLOW_WOOL","Yellow Wool"},{"LIME_WOOL","Lime Wool"},
+                {"PINK_WOOL","Pink Wool"},{"GRAY_WOOL","Gray Wool"},
+                {"LIGHT_GRAY_WOOL","Light Gray Wool"},{"CYAN_WOOL","Cyan Wool"},
+                {"PURPLE_WOOL","Purple Wool"},{"BLUE_WOOL","Blue Wool"},
+                {"BROWN_WOOL","Brown Wool"},{"GREEN_WOOL","Green Wool"},
+                {"RED_WOOL","Red Wool"},{"BLACK_WOOL","Black Wool"},
+                {"WHITE_CARPET","White Carpet"},{"ORANGE_CARPET","Orange Carpet"},
+                {"MAGENTA_CARPET","Magenta Carpet"},{"LIGHT_BLUE_CARPET","Light Blue Carpet"},
+                {"YELLOW_CARPET","Yellow Carpet"},{"LIME_CARPET","Lime Carpet"},
+                {"PINK_CARPET","Pink Carpet"},{"GRAY_CARPET","Gray Carpet"},
+                {"LIGHT_GRAY_CARPET","Light Gray Carpet"},{"CYAN_CARPET","Cyan Carpet"},
+                {"PURPLE_CARPET","Purple Carpet"},{"BLUE_CARPET","Blue Carpet"},
+                {"BROWN_CARPET","Brown Carpet"},{"GREEN_CARPET","Green Carpet"},
+                {"RED_CARPET","Red Carpet"},{"BLACK_CARPET","Black Carpet"}
+            };
+            for (String[] w : wools) {
+                try {
+                    cat.items.add(new ShopGUI.ShopItem(Material.valueOf(w[0]), w[1], 5.0, 2.0));
+                } catch (IllegalArgumentException ignored) {}
+            }
+            categories.put("wool_carpet", cat);
+            changed = true;
+        }
+
+        if (!categories.containsKey("glass")) {
+            ShopCategory cat = new ShopCategory();
+            cat.id          = "glass";
+            cat.displayName = "Glass";
+            cat.icon        = Material.GLASS;
+            cat.color       = "§b§l";
+            cat.tagline     = "Transparent building";
+            cat.detail      = "Glass, panes & all stained variants";
+            cat.position    = nextPosition();
+            String[][] glasses = {
+                {"GLASS","Glass"},{"GLASS_PANE","Glass Pane"},
+                {"WHITE_STAINED_GLASS","White Glass"},{"WHITE_STAINED_GLASS_PANE","White Glass Pane"},
+                {"ORANGE_STAINED_GLASS","Orange Glass"},{"ORANGE_STAINED_GLASS_PANE","Orange Glass Pane"},
+                {"MAGENTA_STAINED_GLASS","Magenta Glass"},{"MAGENTA_STAINED_GLASS_PANE","Magenta Glass Pane"},
+                {"LIGHT_BLUE_STAINED_GLASS","Light Blue Glass"},{"LIGHT_BLUE_STAINED_GLASS_PANE","Light Blue Glass Pane"},
+                {"YELLOW_STAINED_GLASS","Yellow Glass"},{"YELLOW_STAINED_GLASS_PANE","Yellow Glass Pane"},
+                {"LIME_STAINED_GLASS","Lime Glass"},{"LIME_STAINED_GLASS_PANE","Lime Glass Pane"},
+                {"PINK_STAINED_GLASS","Pink Glass"},{"PINK_STAINED_GLASS_PANE","Pink Glass Pane"},
+                {"GRAY_STAINED_GLASS","Gray Glass"},{"GRAY_STAINED_GLASS_PANE","Gray Glass Pane"},
+                {"LIGHT_GRAY_STAINED_GLASS","Light Gray Glass"},{"LIGHT_GRAY_STAINED_GLASS_PANE","Light Gray Glass Pane"},
+                {"CYAN_STAINED_GLASS","Cyan Glass"},{"CYAN_STAINED_GLASS_PANE","Cyan Glass Pane"},
+                {"PURPLE_STAINED_GLASS","Purple Glass"},{"PURPLE_STAINED_GLASS_PANE","Purple Glass Pane"},
+                {"BLUE_STAINED_GLASS","Blue Glass"},{"BLUE_STAINED_GLASS_PANE","Blue Glass Pane"},
+                {"BROWN_STAINED_GLASS","Brown Glass"},{"BROWN_STAINED_GLASS_PANE","Brown Glass Pane"},
+                {"GREEN_STAINED_GLASS","Green Glass"},{"GREEN_STAINED_GLASS_PANE","Green Glass Pane"},
+                {"RED_STAINED_GLASS","Red Glass"},{"RED_STAINED_GLASS_PANE","Red Glass Pane"},
+                {"BLACK_STAINED_GLASS","Black Glass"},{"BLACK_STAINED_GLASS_PANE","Black Glass Pane"}
+            };
+            for (String[] g : glasses) {
+                try {
+                    cat.items.add(new ShopGUI.ShopItem(Material.valueOf(g[0]), g[1], 5.0, 2.0));
+                } catch (IllegalArgumentException ignored) {}
+            }
+            categories.put("glass", cat);
+            changed = true;
+        }
+
+        if (changed) save();
     }
 
     public void save() {
